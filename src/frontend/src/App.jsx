@@ -21,7 +21,8 @@ import {
   DollarSign,
   Award,
   ChevronRight,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 
 const API_BASE = typeof window !== 'undefined' && window.location.hostname.includes('azurewebsites.net')
@@ -237,7 +238,7 @@ export default function App() {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-badge">E360</div>
+          <div className="brand-badge">E360 v2.0</div>
           <span>Employee360</span>
         </div>
 
@@ -246,7 +247,7 @@ export default function App() {
             className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveTab('dashboard')}
           >
-            <LayoutDashboard size={18} />
+            <LayoutDashboard size={16} />
             <span>Dashboard</span>
           </button>
 
@@ -258,7 +259,7 @@ export default function App() {
               setActiveTab('directory');
             }}
           >
-            <Users size={18} />
+            <Users size={16} />
             <span>Directory</span>
           </button>
 
@@ -266,7 +267,7 @@ export default function App() {
             className={`nav-item ${activeTab === 'leaves' ? 'active' : ''}`}
             onClick={() => setActiveTab('leaves')}
           >
-            <Calendar size={18} />
+            <Calendar size={16} />
             <span>Leaves & PTO</span>
           </button>
 
@@ -274,7 +275,7 @@ export default function App() {
             className={`nav-item ${activeTab === 'copilot' ? 'active' : ''}`}
             onClick={() => setActiveTab('copilot')}
           >
-            <Bot size={18} />
+            <Bot size={16} />
             <span>AI HR Copilot</span>
           </button>
 
@@ -282,15 +283,15 @@ export default function App() {
             className={`nav-item ${activeTab === 'devops' ? 'active' : ''}`}
             onClick={() => setActiveTab('devops')}
           >
-            <Cloud size={18} />
+            <Cloud size={16} />
             <span>DevOps Topology</span>
           </button>
         </nav>
 
         <div className="sidebar-footer">
-          <p><strong>Employee360 Cloud Platform</strong></p>
-          <p>DevOps Edition v1.0.0</p>
-          <p>Azure .NET 8 + React</p>
+          <p><strong>Employee360 Enterprise</strong></p>
+          <p>Release v2.0.0 • Cloud Edition</p>
+          <p>Azure .NET 8 + React 18</p>
         </div>
       </aside>
 
@@ -298,14 +299,15 @@ export default function App() {
       <div className="main-wrapper">
         {/* Top Navbar */}
         <header className="top-navbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
               {activeTab === 'dashboard' && 'Executive HR Dashboard'}
               {activeTab === 'directory' && 'Workforce Directory'}
               {activeTab === 'leaves' && 'Leave & Time-Off Management'}
               {activeTab === 'copilot' && 'AI Workforce Copilot'}
               {activeTab === 'devops' && 'Cloud Architecture & Multi-Stage Deployment'}
             </h2>
+            <span className="version-pill">v2.0.0 Stable</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
@@ -519,9 +521,14 @@ export default function App() {
                   </select>
                 </div>
 
-                <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-                  <Plus size={16} /> Onboard Employee
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button className="btn btn-secondary" onClick={fetchData} title="Fetch fresh records from Azure SQL">
+                    <RefreshCw size={13} /> Refresh
+                  </button>
+                  <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                    <Plus size={14} /> Onboard Staff
+                  </button>
+                </div>
               </div>
 
               {/* Active Filter Confirmation Banner */}
@@ -533,7 +540,7 @@ export default function App() {
                       <span className="filter-chip">
                         Status: <strong>{selectedStatus}</strong>
                         <button className="filter-chip-remove" title="Remove status filter" onClick={() => setSelectedStatus('all')}>
-                          <X size={13} />
+                          <X size={12} />
                         </button>
                       </span>
                     )}
@@ -541,7 +548,7 @@ export default function App() {
                       <span className="filter-chip">
                         Department: <strong>{selectedDept}</strong>
                         <button className="filter-chip-remove" title="Remove department filter" onClick={() => setSelectedDept('all')}>
-                          <X size={13} />
+                          <X size={12} />
                         </button>
                       </span>
                     )}
@@ -549,11 +556,11 @@ export default function App() {
                       <span className="filter-chip">
                         Search: <strong>"{search}"</strong>
                         <button className="filter-chip-remove" title="Clear search" onClick={() => setSearch('')}>
-                          <X size={13} />
+                          <X size={12} />
                         </button>
                       </span>
                     )}
-                    <span style={{ fontSize: '0.825rem', color: '#64748b', marginLeft: '0.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '0.4rem' }}>
                       Showing {filteredEmployees.length} of {employees.length} employees
                     </span>
                   </div>
@@ -565,7 +572,7 @@ export default function App() {
                       setSearch('');
                     }}
                   >
-                    Clear All Filters
+                    Clear Filters
                   </button>
                 </div>
               )}
@@ -574,13 +581,13 @@ export default function App() {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Employee Name (Click to View)</th>
+                      <th>Employee Name (Click for Details)</th>
                       <th>Designation</th>
                       <th>Department</th>
                       <th>Performance</th>
                       <th>Status</th>
                       <th>PTO Balance</th>
-                      <th>Actions</th>
+                      <th>AI Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -595,26 +602,27 @@ export default function App() {
                         title="Click to view full employee profile"
                       >
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                             <div style={{ 
-                              width: '38px', 
-                              height: '38px', 
+                              width: '32px', 
+                              height: '32px', 
                               borderRadius: '50%', 
-                              background: '#4f46e5', 
+                              background: 'linear-gradient(135deg, #4f46e5, #6366f1)', 
                               color: 'white', 
                               display: 'flex', 
                               alignItems: 'center', 
                               justifyContent: 'center',
                               fontWeight: 700,
-                              fontSize: '0.85rem'
+                              fontSize: '0.78rem',
+                              flexShrink: 0
                             }}>
                               {emp.firstName[0]}{emp.lastName[0]}
                             </div>
                             <div>
-                              <div style={{ fontWeight: 600, color: '#4f46e5', textDecoration: 'underline' }}>
+                              <div style={{ fontWeight: 600, color: '#1e293b' }}>
                                 {emp.firstName} {emp.lastName}
                               </div>
-                              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{emp.email}</div>
+                              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{emp.email}</div>
                             </div>
                           </div>
                         </td>
@@ -623,6 +631,7 @@ export default function App() {
                         <td><span className="badge badge-rating">{emp.performanceRating}</span></td>
                         <td>
                           <span className={`badge ${emp.status === 'Active' ? 'badge-active' : 'badge-leave'}`}>
+                            <span className={`status-dot ${emp.status === 'Active' ? 'status-dot-active' : 'status-dot-leave'}`} />
                             {emp.status}
                           </span>
                         </td>
@@ -631,12 +640,12 @@ export default function App() {
                           <button 
                             className="btn btn-secondary btn-sm"
                             onClick={(e) => {
-                              e.stopPropagation(); // Don't trigger row click
+                              e.stopPropagation();
                               setActiveTab('copilot');
                               handleSendAi(`Summarize profile for ${emp.firstName} ${emp.lastName}`);
                             }}
                           >
-                            <Sparkles size={14} color="#8b5cf6" /> AI Brief
+                            <Sparkles size={13} color="#8b5cf6" /> Brief
                           </button>
                         </td>
                       </tr>
@@ -860,12 +869,12 @@ EMPLOYEE360 ENTERPRISE AZURE TOPOLOGY (3-TIER PROMOTION MODEL)
       {/* POPUP MODAL: VIEW EMPLOYEE PROFILE DETAILS */}
       {viewEmployee && (
         <div className="modal-overlay" onClick={() => setViewEmployee(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                 <div style={{ 
-                  width: '54px', 
-                  height: '54px', 
+                  width: '44px', 
+                  height: '44px', 
                   borderRadius: '50%', 
                   background: 'linear-gradient(135deg, #4f46e5, #06b6d4)', 
                   color: 'white', 
@@ -873,66 +882,67 @@ EMPLOYEE360 ENTERPRISE AZURE TOPOLOGY (3-TIER PROMOTION MODEL)
                   alignItems: 'center', 
                   justifyContent: 'center',
                   fontWeight: 700,
-                  fontSize: '1.25rem'
+                  fontSize: '1.05rem',
+                  flexShrink: 0
                 }}>
                   {viewEmployee.firstName[0]}{viewEmployee.lastName[0]}
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.35rem', fontWeight: 700 }}>{viewEmployee.firstName} {viewEmployee.lastName}</h3>
-                  <p style={{ color: '#64748b', fontSize: '0.9rem' }}>{viewEmployee.jobTitle}</p>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>{viewEmployee.firstName} {viewEmployee.lastName}</h3>
+                  <p style={{ color: '#64748b', fontSize: '0.8rem' }}>{viewEmployee.jobTitle}</p>
                 </div>
               </div>
               <button 
                 onClick={() => setViewEmployee(null)} 
                 style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}
               >
-                <X size={22} />
+                <X size={18} />
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ padding: '0.85rem', background: '#f8fafc', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.8rem' }}>
-                  <Mail size={14} /> Email Address
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ padding: '0.65rem 0.8rem', background: '#f8fafc', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748b', fontSize: '0.74rem' }}>
+                  <Mail size={13} /> Email Address
                 </div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginTop: '0.25rem' }}>{viewEmployee.email}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.82rem', marginTop: '0.2rem' }}>{viewEmployee.email}</div>
               </div>
 
-              <div style={{ padding: '0.85rem', background: '#f8fafc', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.8rem' }}>
-                  <Phone size={14} /> Contact Phone
+              <div style={{ padding: '0.65rem 0.8rem', background: '#f8fafc', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748b', fontSize: '0.74rem' }}>
+                  <Phone size={13} /> Contact Phone
                 </div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginTop: '0.25rem' }}>{viewEmployee.phone || '+91 98765 43210'}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.82rem', marginTop: '0.2rem' }}>{viewEmployee.phone || '+91 98765 43210'}</div>
               </div>
 
-              <div style={{ padding: '0.85rem', background: '#f8fafc', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.8rem' }}>
-                  <Building2 size={14} /> Department
+              <div style={{ padding: '0.65rem 0.8rem', background: '#f8fafc', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748b', fontSize: '0.74rem' }}>
+                  <Building2 size={13} /> Department
                 </div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginTop: '0.25rem' }}>{viewEmployee.department?.name || 'Engineering'}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.82rem', marginTop: '0.2rem' }}>{viewEmployee.department?.name || 'Engineering'}</div>
               </div>
 
-              <div style={{ padding: '0.85rem', background: '#f8fafc', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.8rem' }}>
-                  <DollarSign size={14} /> Annual Compensation
+              <div style={{ padding: '0.65rem 0.8rem', background: '#f8fafc', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748b', fontSize: '0.74rem' }}>
+                  <DollarSign size={13} /> Annual Compensation
                 </div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginTop: '0.25rem' }}>${Number(viewEmployee.salary).toLocaleString()} USD</div>
+                <div style={{ fontWeight: 600, fontSize: '0.82rem', marginTop: '0.2rem' }}>${Number(viewEmployee.salary).toLocaleString()} USD</div>
               </div>
 
-              <div style={{ padding: '0.85rem', background: '#f8fafc', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.8rem' }}>
-                  <Award size={14} /> Performance Rating
+              <div style={{ padding: '0.65rem 0.8rem', background: '#f8fafc', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748b', fontSize: '0.74rem' }}>
+                  <Award size={13} /> Performance Rating
                 </div>
-                <div style={{ marginTop: '0.25rem' }}>
+                <div style={{ marginTop: '0.2rem' }}>
                   <span className="badge badge-rating">{viewEmployee.performanceRating}</span>
                 </div>
               </div>
 
-              <div style={{ padding: '0.85rem', background: '#f8fafc', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.8rem' }}>
-                  <Calendar size={14} /> PTO Leave Balance
+              <div style={{ padding: '0.65rem 0.8rem', background: '#f8fafc', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748b', fontSize: '0.74rem' }}>
+                  <Calendar size={13} /> PTO Leave Balance
                 </div>
-                <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.25rem', color: '#10b981' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: '0.2rem', color: '#10b981' }}>
                   {viewEmployee.leaveBalance || 20} Days Available
                 </div>
               </div>
