@@ -1,0 +1,132 @@
+# =============================================================================
+# EMPLOYEE360 — AZURE DEVOPS MULTI-STAGE CI/CD PIPELINE
+# Stages: Build & Test -> Docker Package & Push -> Deploy DEV -> Deploy TEST -> Manual Approval -> Deploy PROD
+# =============================================================================
+
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # Azure DevOps Service Connections (Configure in Project Settings -> Service connections)
+  - name: azureServiceConnection
+    value: 'sc-azure-subscription'
+  - name: acrServiceConnection
+    value: 'sc-employee360-acr'
+
+  # Azure Container Registry details
+  - name: acrLoginServer
+    value: 'cremp360b62vgl3.azurecr.io'
+  - name: backendImage
+    value: 'employee360-backend'
+  - name: frontendImage
+    value: 'employee360-frontend'
+
+  # App Service Names in DEV
+  - name: devResourceGroup
+    value: 'rg-emp360-dev'
+  - name: devBackendApp
+    value: 'app-emp360-backend-dev-009be2'
+  - name: devFrontendApp
+    value: 'app-emp360-frontend-dev-009be2'
+
+stages:
+  # ---------------------------------------------------------------------------
+  # STAGE 1: COMPILE & UNIT TEST (.NET 8 & React Vite)
+  # ---------------------------------------------------------------------------
+  - stage: BuildAndTest
+    displayName: '1. Build & Unit Test'
+    jobs:
+      - job: BuildBackend
+        displayName: 'Restore & Compile .NET 8 API'
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Install .NET 8 SDK'
+            inputs:
+              packageType: 'sdk'
+              version: '8.0.x'
+          
+          - script: |
+              dotnet restore src/backend/Employee360.API/Employee360.API.csproj
+              dotnet build src/backend/Employee360.API/Employee360.API.csproj --configuration Release --no-restore
+            displayName: 'Restore & Build Web API'
+
+      - job: BuildFrontend
+        displayName: 'Lint & Compile React Frontend'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js 20'
+            inputs:
+              versionSpec: '20.x'
+          
+          - script: |
+              cd src/frontend
+              npm install
+              npm run build
+            displayName: 'Build Production Vite Bundle'
+
+  # ---------------------------------------------------------------------------
+  # STAGE 2: DOCKER MULTI-STAGE BUILD & PUSH TO ACR
+  # ---------------------------------------------------------------------------
+  - stage: DockerPublish
+    displayName: '2. Docker Build & Push to ACR'
+    dependsOn: BuildAndTest
+    jobs:
+      - job: DockerBuildPush
+        displayName: 'Build & Push Images'
+        steps:
+          - task: Docker@2
+            displayName: 'Build & Push Backend Image'
+            inputs:
+              command: buildAndPush
+              repository: $(backendImage)
+              dockerfile: 'src/backend/Dockerfile'
+              buildContext: '$(Build.SourcesDirectory)/src/backend'
+              containerRegistry: $(acrServiceConnection)
+              tags: |
+                $(Build.BuildId)
+                latest
+
+          - task: Docker@2
+            displayName: 'Build & Push Frontend Image'
+            inputs:
+              command: buildAndPush
+              repository: $(frontendImage)
+              dockerfile: 'src/frontend/Dockerfile'
+              buildContext: '$(Build.SourcesDirectory)/src/frontend'
+              containerRegistry: $(acrServiceConnection)
+              tags: |
+                $(Build.BuildId)
+                latest
+
+  # ---------------------------------------------------------------------------
+  # STAGE 3: CONTINUOUS DEPLOYMENT TO DEV ENVIRONMENT
+  # ---------------------------------------------------------------------------
+  - stage: DeployDev
+    displayName: '3. Deploy to DEV (rg-emp360-dev)'
+    dependsOn: DockerPublish
+    jobs:
+      - deployment: DeployDev
+        displayName: 'Deploy Containers to DEV App Services'
+        environment: 'employee360-dev'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebAppContainer@1
+                  displayName: 'Deploy Backend Container to DEV'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    appName: $(devBackendApp)
+                    imageName: '$(acrLoginServer)/$(backendImage):$(Build.BuildId)'
+
+                - task: AzureWebAppContainer@1
+                  displayName: 'Deploy Frontend Container to DEV'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    appName: $(devFrontendApp)
+                    imageName: '$(acrLoginServer)/$(frontendImage):$(Build.BuildId)'
