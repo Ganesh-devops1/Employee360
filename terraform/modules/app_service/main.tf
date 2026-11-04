@@ -25,6 +25,10 @@ resource "azurerm_linux_web_app" "backend" {
   service_plan_id     = azurerm_service_plan.asp.id
   https_only          = true
 
+  identity {
+    type = "SystemAssigned"
+  }
+
   site_config {
     always_on = (var.plan_sku != "F1") # Always on not supported on Free tier
 
