@@ -42,6 +42,14 @@ variables:
   - name: testFrontendApp
     value: 'app-emp360-frontend-test-pcxl2i'
 
+  # App Service Names in PROD
+  - name: prodResourceGroup
+    value: 'rg-emp360-prod'
+  - name: prodBackendApp
+    value: 'app-emp360-backend-prod-sqvnfb'
+  - name: prodFrontendApp
+    value: 'app-emp360-frontend-prod-sqvnfb'
+
 stages:
   # ---------------------------------------------------------------------------
   # STAGE 1: COMPILE & UNIT TEST (.NET 8 & React Vite)
@@ -177,3 +185,42 @@ stages:
                     curl -f -s -I https://$(testFrontendApp).azurewebsites.net || (echo "Frontend check failed!" && exit 1)
                     echo "TEST Deployment Succeeded with 0 Errors!"
                   displayName: 'Automated Integration & Smoke Test'
+
+  # ---------------------------------------------------------------------------
+  # STAGE 5: CONTINUOUS DEPLOYMENT TO PRODUCTION ENVIRONMENT
+  # ---------------------------------------------------------------------------
+  - stage: DeployProd
+    displayName: '5. Deploy to PROD (rg-emp360-prod)'
+    dependsOn: DeployTest
+    jobs:
+      - deployment: DeployProd
+        displayName: 'Deploy Containers to PROD App Services'
+        environment: 'employee360-prod'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebAppContainer@1
+                  displayName: 'Deploy Backend Container to PROD'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    appName: $(prodBackendApp)
+                    imageName: '$(acrLoginServer)/$(backendImage):$(Build.BuildId)'
+
+                - task: AzureWebAppContainer@1
+                  displayName: 'Deploy Frontend Container to PROD'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    appName: $(prodFrontendApp)
+                    imageName: '$(acrLoginServer)/$(frontendImage):$(Build.BuildId)'
+
+                - script: |
+                    echo "Waiting 20s for PROD container warm-up..."
+                    sleep 20
+                    echo "Probing PROD Backend Health..."
+                    curl -f -s https://$(prodBackendApp).azurewebsites.net/health/ready || (echo "Health check failed!" && exit 1)
+                    echo "Backend is healthy and connected to Production Azure SQL!"
+                    echo "Probing PROD Frontend..."
+                    curl -f -s -I https://$(prodFrontendApp).azurewebsites.net || (echo "Frontend check failed!" && exit 1)
+                    echo "PROD Deployment Succeeded with 0 Errors!"
+                  displayName: 'Automated Smoke & Readiness Test'
