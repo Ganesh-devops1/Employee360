@@ -34,6 +34,14 @@ variables:
   - name: devFrontendApp
     value: 'app-emp360-frontend-dev-009be2'
 
+  # App Service Names in TEST
+  - name: testResourceGroup
+    value: 'rg-emp360-test'
+  - name: testBackendApp
+    value: 'app-emp360-backend-test-pcxl2i'
+  - name: testFrontendApp
+    value: 'app-emp360-frontend-test-pcxl2i'
+
 stages:
   # ---------------------------------------------------------------------------
   # STAGE 1: COMPILE & UNIT TEST (.NET 8 & React Vite)
@@ -130,3 +138,42 @@ stages:
                     azureSubscription: $(azureServiceConnection)
                     appName: $(devFrontendApp)
                     imageName: '$(acrLoginServer)/$(frontendImage):$(Build.BuildId)'
+
+  # ---------------------------------------------------------------------------
+  # STAGE 4: CONTINUOUS DEPLOYMENT TO TEST ENVIRONMENT
+  # ---------------------------------------------------------------------------
+  - stage: DeployTest
+    displayName: '4. Deploy to TEST (rg-emp360-test)'
+    dependsOn: DeployDev
+    jobs:
+      - deployment: DeployTest
+        displayName: 'Deploy Containers to TEST App Services'
+        environment: 'employee360-test'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebAppContainer@1
+                  displayName: 'Deploy Backend Container to TEST'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    appName: $(testBackendApp)
+                    imageName: '$(acrLoginServer)/$(backendImage):$(Build.BuildId)'
+
+                - task: AzureWebAppContainer@1
+                  displayName: 'Deploy Frontend Container to TEST'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    appName: $(testFrontendApp)
+                    imageName: '$(acrLoginServer)/$(frontendImage):$(Build.BuildId)'
+
+                - script: |
+                    echo "Waiting 20s for TEST container warm-up..."
+                    sleep 20
+                    echo "Probing TEST Backend Health..."
+                    curl -f -s https://$(testBackendApp).azurewebsites.net/health/ready || (echo "Health check failed!" && exit 1)
+                    echo "Backend is healthy and connected to Azure SQL!"
+                    echo "Probing TEST Frontend..."
+                    curl -f -s -I https://$(testFrontendApp).azurewebsites.net || (echo "Frontend check failed!" && exit 1)
+                    echo "TEST Deployment Succeeded with 0 Errors!"
+                  displayName: 'Automated Integration & Smoke Test'
